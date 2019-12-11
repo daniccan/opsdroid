@@ -14,6 +14,7 @@ from opsdroid import events
 from opsdroid.const import DEFAULT_CONFIG_PATH
 from opsdroid.memory import Memory
 from opsdroid.connector import Connector
+from opsdroid.configuration import load_config_file
 from opsdroid.database import Database
 from opsdroid.skill import Skill
 from opsdroid.loader import Loader
@@ -108,7 +109,9 @@ class OpsDroid:
 
     def exit(self):
         """Exit application."""
-        _LOGGER.info(_("Exiting application with return code %s"), str(self.sys_status))
+        _LOGGER.info(
+            _("Exiting application with return code %s."), str(self.sys_status)
+        )
         sys.exit(self.sys_status)
 
     def critical(self, error, code):
@@ -128,6 +131,7 @@ class OpsDroid:
         """Handle exceptions from async coroutines.
 
         Args:
+            loop (asyncio.loop): Running loop that raised the exception.
             context (String): Describes the exception encountered.
 
         """
@@ -175,7 +179,7 @@ class OpsDroid:
     async def load(self):
         """Load modules."""
         self.modules = self.loader.load_modules_from_config(self.config)
-        _LOGGER.debug(_("Loaded %i skills"), len(self.modules["skills"]))
+        _LOGGER.debug(_("Loaded %i skills."), len(self.modules["skills"]))
         self.setup_skills(self.modules["skills"])
         self.web_server = Web(self)
         self.web_server.setup_webhooks(self.skills)
@@ -194,25 +198,25 @@ class OpsDroid:
 
         _LOGGER.info(_("Removing skills..."))
         for skill in self.skills:
-            _LOGGER.info(_("Removed %s"), skill.config["name"])
+            _LOGGER.info(_("Removed %s."), skill.config["name"])
             self.skills.remove(skill)
 
         for connector in self.connectors:
             _LOGGER.info(_("Stopping connector %s..."), connector.name)
             await connector.disconnect()
             self.connectors.remove(connector)
-            _LOGGER.info(_("Stopped connector %s"), connector.name)
+            _LOGGER.info(_("Stopped connector %s."), connector.name)
 
         for database in self.memory.databases:
             _LOGGER.info(_("Stopping database %s..."), database.name)
             await database.disconnect()
             self.memory.databases.remove(database)
-            _LOGGER.info(_("Stopped database %s"), database.name)
+            _LOGGER.info(_("Stopped database %s."), database.name)
 
         _LOGGER.info(_("Stopping web server..."))
         await self.web_server.stop()
         self.web_server = None
-        _LOGGER.info(_("Stopped web server"))
+        _LOGGER.info(_("Stopped web server."))
 
         _LOGGER.info(_("Stopping cron..."))
         self.cron_task.cancel()
@@ -224,12 +228,12 @@ class OpsDroid:
         for task in list(tasks):
             if not task.done() and task is not asyncio.Task.current_task():
                 task.cancel()
-        _LOGGER.info(_("Stopped pending tasks"))
+        _LOGGER.info(_("Stopped pending tasks."))
 
     async def reload(self):
         """Reload opsdroid."""
         await self.unload()
-        self.config = Loader.load_config_file(
+        self.config = load_config_file(
             [
                 "configuration.yaml",
                 DEFAULT_CONFIG_PATH,
@@ -286,12 +290,10 @@ class OpsDroid:
 
         """
         if "parsers" in self.config:
-            parsers = self.config["parsers"] or []
-            rasanlu = [p for p in parsers if p["name"] == "rasanlu"]
-            if len(rasanlu) == 1 and (
-                "enabled" not in rasanlu[0] or rasanlu[0]["enabled"] is not False
-            ):
-                await train_rasanlu(rasanlu[0], skills)
+            parsers = self.config["parsers"] or {}
+            rasanlu = parsers.get("rasanlu")
+            if rasanlu and rasanlu["enabled"]:
+                await train_rasanlu(rasanlu, skills)
 
     async def start_connectors(self, connectors):
         """Start the connectors.
@@ -321,7 +323,7 @@ class OpsDroid:
                 task = self.eventloop.create_task(connector.listen())
                 self.connector_tasks.append(task)
         else:
-            self.critical("All connectors failed to load", 1)
+            self.critical("All connectors failed to load.", 1)
 
     # pylint: disable=W0640
     @property
@@ -359,7 +361,7 @@ class OpsDroid:
         """
         if not databases:
             _LOGGER.debug(databases)
-            _LOGGER.warning(_("All databases failed to load"))
+            _LOGGER.warning(_("All databases failed to load."))
         for database_module in databases:
             for name, cls in database_module["module"].__dict__.items():
                 if (
@@ -367,8 +369,8 @@ class OpsDroid:
                     and issubclass(cls, Database)
                     and cls is not Database
                 ):
-                    _LOGGER.debug(_("Adding database: %s"), name)
-                    database = cls(database_module["config"])
+                    _LOGGER.debug(_("Adding database: %s."), name)
+                    database = cls(database_module["config"], opsdroid=self)
                     self.memory.databases.append(database)
                     await database.connect()
 
@@ -395,11 +397,13 @@ class OpsDroid:
                 return await skill(event)
         except Exception:
             _LOGGER.exception(
-                _("Exception when running skill '%s' "), str(config["name"])
+                _("Exception when running skill '%s'."), str(config["name"])
             )
             if event:
-                await event.respond(events.Message(_("Whoops there has been an error")))
-                await event.respond(events.Message(_("Check the log for details")))
+                await event.respond(
+                    events.Message(_("Whoops there has been an error."))
+                )
+                await event.respond(events.Message(_("Check the log for details.")))
 
     async def get_ranked_skills(self, skills, message):
         """Take a message and return a ranked list of matching skills.
@@ -416,56 +420,42 @@ class OpsDroid:
         if isinstance(message, events.Message):
             ranked_skills += await parse_regex(self, skills, message)
             ranked_skills += await parse_format(self, skills, message)
-        ranked_skills += await parse_event_type(self, message)
 
         if "parsers" in self.config:
             _LOGGER.debug(_("Processing parsers..."))
-            parsers = self.config["parsers"] or []
+            parsers = self.config["parsers"] or {}
 
-            dialogflow = [p for p in parsers if p["name"] == "dialogflow"]
-
-            if len(dialogflow) == 1 and (
-                "enabled" not in dialogflow[0] or dialogflow[0]["enabled"] is not False
-            ):
+            dialogflow = parsers.get("dialogflow")
+            if dialogflow and dialogflow["enabled"]:
                 _LOGGER.debug(_("Checking dialogflow..."))
                 ranked_skills += await parse_dialogflow(
-                    self, skills, message, dialogflow[0]
+                    self, skills, message, dialogflow
                 )
 
-            luisai = [p for p in parsers if p["name"] == "luisai"]
-            if len(luisai) == 1 and (
-                "enabled" not in luisai[0] or luisai[0]["enabled"] is not False
-            ):
+            luisai = parsers.get("luisai")
+            if luisai and luisai["enabled"]:
                 _LOGGER.debug(_("Checking luisai..."))
-                ranked_skills += await parse_luisai(self, skills, message, luisai[0])
+                ranked_skills += await parse_luisai(self, skills, message, luisai)
 
-            sapcai = [p for p in parsers if p["name"] == "sapcai"]
-            if len(sapcai) == 1 and (
-                "enabled" not in sapcai[0] or sapcai[0]["enabled"] is not False
-            ):
+            sapcai = parsers.get("sapcai")
+            if sapcai and sapcai["enabled"]:
                 _LOGGER.debug(_("Checking SAPCAI..."))
-                ranked_skills += await parse_sapcai(self, skills, message, sapcai[0])
+                ranked_skills += await parse_sapcai(self, skills, message, sapcai)
 
-            witai = [p for p in parsers if p["name"] == "witai"]
-            if len(witai) == 1 and (
-                "enabled" not in witai[0] or witai[0]["enabled"] is not False
-            ):
+            witai = parsers.get("witai")
+            if witai and witai["enabled"]:
                 _LOGGER.debug(_("Checking wit.ai..."))
-                ranked_skills += await parse_witai(self, skills, message, witai[0])
+                ranked_skills += await parse_witai(self, skills, message, witai)
 
-            watson = [p for p in parsers if p["name"] == "watson"]
-            if len(watson) == 1 and (
-                "enabled" not in watson[0] or watson[0]["enabled"] is not False
-            ):
+            watson = parsers.get("watson")
+            if watson and watson["enabled"]:
                 _LOGGER.debug(_("Checking IBM Watson..."))
-                ranked_skills += await parse_watson(self, skills, message, watson[0])
+                ranked_skills += await parse_watson(self, skills, message, watson)
 
-            rasanlu = [p for p in parsers if p["name"] == "rasanlu"]
-            if len(rasanlu) == 1 and (
-                "enabled" not in rasanlu[0] or rasanlu[0]["enabled"] is not False
-            ):
+            rasanlu = parsers.get("rasanlu")
+            if rasanlu and rasanlu["enabled"]:
                 _LOGGER.debug(_("Checking Rasa NLU..."))
-                ranked_skills += await parse_rasanlu(self, skills, message, rasanlu[0])
+                ranked_skills += await parse_rasanlu(self, skills, message, rasanlu)
 
         return sorted(ranked_skills, key=lambda k: k["score"], reverse=True)
 
@@ -499,10 +489,10 @@ class OpsDroid:
         """
         self.stats["messages_parsed"] = self.stats["messages_parsed"] + 1
         tasks = []
+        tasks.append(self.eventloop.create_task(parse_always(self, event)))
+        tasks.append(self.eventloop.create_task(parse_event_type(self, event)))
         if isinstance(event, events.Message):
-            _LOGGER.debug(_("Parsing input: %s"), event)
-
-            tasks.append(self.eventloop.create_task(parse_always(self, event)))
+            _LOGGER.debug(_("Parsing input: %s."), event)
 
             unconstrained_skills = await self._constrain_skills(self.skills, event)
             ranked_skills = await self.get_ranked_skills(unconstrained_skills, event)
@@ -516,6 +506,8 @@ class OpsDroid:
                         )
                     )
                 )
+
+        await asyncio.gather(*tasks)
 
         return tasks
 

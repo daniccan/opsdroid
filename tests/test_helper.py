@@ -7,13 +7,14 @@ import unittest.mock as mock
 
 from opsdroid.helper import (
     del_rw,
-    move_config_to_appdir,
     file_is_ipython_notebook,
     convert_ipynb_to_script,
     extract_gist_id,
     get_opsdroid,
     JSONEncoder,
     JSONDecoder,
+    convert_dictionary,
+    get_config_option,
 )
 
 
@@ -26,21 +27,6 @@ class TestHelper(unittest.TestCase):
         ) as mock_remove:
             del_rw(None, None, None)
             self.assertTrue(mock_chmod.called)
-            self.assertTrue(mock_remove.called)
-
-    def test_move_config(self):
-        with mock.patch("os.mkdir") as mock_mkdir, mock.patch(
-            "os.path.isdir"
-        ) as mock_isdir, mock.patch("os.remove") as mock_remove:
-
-            mock_isdir.return_value = False
-
-            move_config_to_appdir(
-                os.path.abspath("tests/configs/"), tempfile.gettempdir()
-            )
-
-            self.assertTrue(mock_mkdir.called)
-            self.assertLogs("_LOGGER", "info")
             self.assertTrue(mock_remove.called)
 
     def test_file_is_ipython_notebook(self):
@@ -71,6 +57,48 @@ class TestHelper(unittest.TestCase):
     def test_opsdroid(self):
         # Test that get_opsdroid returns None if no instances exist
         assert get_opsdroid() is None
+
+    def test_convert_dictionary(self):
+        modules = [
+            {"name": "telegram", "access-token": "test"},
+            {"name": "mattermost", "api-token": "test"},
+        ]
+        updated_modules = convert_dictionary(modules)
+        self.assertEqual(updated_modules["telegram"].get("token"), "test")
+        self.assertIn("token", updated_modules["mattermost"])
+
+    def test_get_config_option(self):
+        module_config = {"repo": "test"}
+
+        result = get_config_option(
+            ["repo", "path", "gist"],
+            module_config,
+            True,
+            f"opsdroid.connectors.websocket",
+        )
+
+        self.assertEqual(result, (True, "repo", "test"))
+
+    def test_get_config_no_option(self):
+        module_config = {
+            "bot-name": "mybot",
+            "max-connections": 10,
+            "connection-timeout": 10,
+        }
+
+        result = get_config_option(
+            ["repo", "path", "gist"], module_config, True, "module"
+        )
+
+        self.assertEqual(result, ("module", "module", "module"))
+
+    def test_get_config_option_exception(self):
+        module_config = None
+
+        result = get_config_option(
+            ["repo", "path", "gist"], module_config, True, "module"
+        )
+        self.assertEqual(result, ("module", "module", "module"))
 
 
 class TestJSONEncoder(unittest.TestCase):

@@ -12,7 +12,7 @@ from opsdroid.cli.start import configure_lang
 
 
 class TestRocketChat(unittest.TestCase):
-    """Test the opsdroid Slack connector class."""
+    """Test the opsdroid RocketChat connector class."""
 
     def setUp(self):
         self.loop = asyncio.new_event_loop()
@@ -23,7 +23,7 @@ class TestRocketChat(unittest.TestCase):
         connector = RocketChat(
             {
                 "name": "rocket.chat",
-                "access-token": "test",
+                "token": "test",
                 "user-id": "userID",
                 "update-interval": 0.1,
             },
@@ -40,7 +40,7 @@ class TestRocketChat(unittest.TestCase):
 
 
 class TestConnectorRocketChatAsync(asynctest.TestCase):
-    """Test the async methods of the opsdroid Slack connector class."""
+    """Test the async methods of the opsdroid RocketChat connector class."""
 
     def setUp(self):
         configure_lang({})
