@@ -471,7 +471,7 @@ class Loader:
 
             # Suppress exception if module doesn't contain CONFIG_SCHEMA
             with contextlib.suppress(AttributeError):
-                validate_configuration(config, module.CONFIG_SCHEMA)
+                config = validate_configuration(config, module.CONFIG_SCHEMA)
 
             # Load intents
             intents = self._load_intents(config)
@@ -648,7 +648,7 @@ class Loader:
 
         # We only support one skill file in a gist for now.
         #
-        # TODO: Add support for mutliple files. Could be particularly
+        # TODO: Add support for multiple files. Could be particularly
         # useful for including a requirements.txt file.
         skill_content = python_files[0]["content"]
         extension = os.path.splitext(python_files[0]["filename"])[1]
