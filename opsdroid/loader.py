@@ -101,9 +101,20 @@ class Loader:
                 continue
 
         if module_spec:
-            module = Loader.import_module_from_spec(module_spec)
-            _LOGGER.debug(_("Loaded %s: %s."), config["type"], config["module_path"])
-            return module
+            try:
+                module = Loader.import_module_from_spec(module_spec)
+            except Exception as e:
+                _LOGGER.error(
+                    _("The following exception was raised while importing %s %s"),
+                    config["type"],
+                    config["module_path"],
+                )
+                _LOGGER.error(str(e))
+            else:
+                _LOGGER.debug(
+                    _("Loaded %s: %s."), config["type"], config["module_path"]
+                )
+                return module
 
         _LOGGER.error(
             _("Failed to load %s: %s."), config["type"], config["module_path"]
@@ -352,11 +363,6 @@ class Loader:
         if "skills" in config.keys() and config["skills"]:
             skills = self._load_modules("skill", config["skills"])
 
-        else:
-            self.opsdroid.critical(
-                _("No skills in configuration, at least 1 required"), 1
-            )
-
         if "connectors" in config.keys() and config["connectors"]:
             connectors = self._load_modules("connector", config["connectors"])
         else:
@@ -595,8 +601,7 @@ class Loader:
             else:
                 _LOGGER.error(_("Could not find local git repo %s."), git_url)
 
-    @staticmethod
-    def _install_local_module(config):
+    def _install_local_module(self, config):
         """Install a module from a local path.
 
         Args:
@@ -625,6 +630,8 @@ class Loader:
 
         if not installed:
             _LOGGER.error("Failed to install from %s.", str(config["path"]))
+        else:
+            self.opsdroid.reload_paths.append(config["path"])
 
     def _install_gist_module(self, config):
         """Install a module from gist path.

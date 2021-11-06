@@ -1,0 +1,52 @@
+connector:
+  - opsdroid/connector/**/*
+connector/facebook:
+  - opsdroid/connector/facebook/**/*
+connector/github:
+  - opsdroid/connector/github/**/*
+connector/gitter:
+  - opsdroid/connector/gitter/**/*
+connector/matrix:
+  - opsdroid/connector/matrix/**/*
+connector/rocketchat:
+  - opsdroid/connector/rocketchat/**/*
+connector/slack:
+  - opsdroid/connector/slack/**/*
+connector/telegram:
+  - opsdroid/connector/telegram/**/*
+connector/twitch:
+  - opsdroid/connector/twitch/**/*
+connector/webexteams:
+  - opsdroid/connector/webexteams/**/*
+connector/websocket:
+  - opsdroid/connector/websocket/**/*
+connector/teams:
+  - opsdroid/connector/teams/**/*
+
+database:
+  - opsdroid/database/**/*
+
+parser:
+  - opsdroid/parsers/**/*
+
+documentation:
+  - '**/*.md'
+
+installation/packaging:
+  - MANIFEST.in
+  - setup.py
+  - setup.cfg
+  - Dockerfile
+  - tox.ini
+  - versioneer.py
+  - 'requirements*.txt'
+  - .pre-commit-config.yaml
+  - .readthedocs.yml
+  - .coveragerc
+  - .codecov.yaml
+  - .github/**/*
+
+tests:
+  - "tests/**/*"
+  - "**/tests/**/*"
+  - "**/conftest.py"

@@ -103,12 +103,10 @@ class TestCLI(unittest.TestCase):
         with mock.patch.object(sys, "version_info") as version_info:
             version_info.major = 3
             version_info.minor = 6
-            try:
+            with self.assertRaises(SystemExit):
                 from opsdroid.cli.utils import check_dependencies
 
                 check_dependencies()
-            except SystemExit:
-                self.fail("check_dependencies() exited unexpectedly!")
 
     def test_check_version_37(self):
         with mock.patch.object(sys, "version_info") as version_info:
@@ -147,14 +145,11 @@ class TestCLI(unittest.TestCase):
             self.assertEqual(result.exit_code, 0)
 
     def test_edit_files_config(self):
-        with mock.patch.object(click, "echo") as click_echo, mock.patch(
-            "subprocess.run"
-        ) as editor:
+        with mock.patch.object(click, "echo"), mock.patch("subprocess.run") as editor:
             runner = CliRunner()
             from opsdroid.cli.config import edit
 
             result = runner.invoke(edit, [], input="y")
-            self.assertTrue(click_echo.called)
             self.assertTrue(editor.called)
             self.assertEqual(result.exit_code, 0)
 

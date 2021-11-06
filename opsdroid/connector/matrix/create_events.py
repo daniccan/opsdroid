@@ -1,7 +1,12 @@
 """A helper module to create opsdroid events from matrix events."""
+import logging
 from collections import defaultdict
+
 from opsdroid import events
 
+from . import events as matrix_events
+
+_LOGGER = logging.getLogger(__name__)
 
 __all__ = ["MatrixEventCreator"]
 
@@ -25,7 +30,8 @@ class MatrixEventCreator(events.EventCreator):
 
     async def create_event_from_eventid(self, eventid, roomid):
         """Return an ``Event`` based on an event id in a room."""
-        event_json = await self.connector.connection.get_event_in_room(roomid, eventid)
+        room_context = await self.connector.connection.room_context(roomid, eventid, 1)
+        event_json = room_context.event.source
         return await self.create_event(event_json, roomid)
 
     def __init__(self, connector, *args, **kwargs):
@@ -51,6 +57,31 @@ class MatrixEventCreator(events.EventCreator):
                 # 'm.location':
             }
         )
+
+    async def skip(self, event, roomid):
+        """Generate a generic event (state event if appropriate)."""
+        kwargs = dict(
+            content=event["content"],
+            event_type=event["type"],
+            user_id=event["sender"],
+            user=await self.connector.get_nick(roomid, event["sender"]),
+            target=roomid,
+            connector=self.connector,
+            raw_event=event,
+            event_id=event["event_id"],
+        )
+        event_type = matrix_events.GenericMatrixRoomEvent
+        if "state_key" in event:
+            event_type = matrix_events.MatrixStateEvent
+            kwargs["state_key"] = event["state_key"]
+        try:
+            event = event_type(**kwargs)
+            return event
+        except Exception:  # pragma: nocover
+            _LOGGER.exception(
+                f"Matrix connector failed to parse event {event} as a room event."
+            )
+            return None
 
     async def create_room_message(self, event, roomid):
         """Dispatch a m.room.message event."""
@@ -88,12 +119,20 @@ class MatrixEventCreator(events.EventCreator):
         return events.Message(**kwargs)
 
     async def _file_kwargs(self, event, roomid):
-        url = self.connector.connection.get_download_url(event["content"]["url"])
+
+        if "url" in event["content"]:
+            url = event["content"]["url"]
+        else:
+            url = event["content"]["file"]["url"]
+
+        url = await self.connector.connection.mxc_to_http(url)
+        user = await self.connector.get_nick(roomid, event["sender"])
+
         return dict(
             url=url,
             name=event["content"]["body"],
             user_id=event["sender"],
-            user=await self.connector.get_nick(roomid, event["sender"]),
+            user=user,
             target=roomid,
             connector=self.connector,
             event_id=event["event_id"],

@@ -1,14 +1,17 @@
 """Classes to describe different kinds of Slack specific event."""
 
 import json
-import aiohttp
+import logging
 import ssl
+
+import aiohttp
 import certifi
+from opsdroid import events
 
-from opsdroid.events import Message, Event
+_LOGGER = logging.getLogger(__name__)
 
 
-class Blocks(Message):
+class Blocks(events.Message):
     """A blocks object.
 
     Slack uses blocks to add advenced interactivity and formatting to messages.
@@ -43,11 +46,20 @@ class Blocks(Message):
         super().__init__("", *args, **kwargs)
 
         self.blocks = blocks
+
         if isinstance(self.blocks, list):
             self.blocks = json.dumps(self.blocks)
 
 
-class InteractiveAction(Event):
+class EditedBlocks(Blocks):
+    """A  `Blocks` slack instance which has been edited.
+
+    The ``linked_event`` property should hold Time Stamp (ts) of the Block
+    to be edited
+    """
+
+
+class InteractiveAction(events.Event):
     """Super class to represent Slack interactive actions."""
 
     def __init__(self, payload, *args, **kwargs):
@@ -76,7 +88,11 @@ class InteractiveAction(Event):
                         headers=headers,
                         ssl=self.ssl_context,
                     )
-                    response_txt = await response.json()
+
+                    if response.content_type == "application/json":
+                        response_txt = await response.json()
+                    elif response.content_type == "text/html":
+                        response_txt = await response.text()
             else:
                 response_txt = {"error": "Response URL not available in payload."}
         else:
@@ -112,6 +128,37 @@ class ViewSubmission(InteractiveAction):
 class ViewClosed(InteractiveAction):
     """Event class to represent view_closed in Slack."""
 
-    def __init__(self, payload, *args, **kwargs):
-        """Create object with minimum properties."""
-        super().__init__(payload, *args, **kwargs)
+
+class SlashCommand(InteractiveAction):
+    """
+    Event class to represent a slash command.
+
+    args:
+        payload: Incomming payload from the Slack API
+
+    **Basic Usage in a Skill:**
+
+    .. code-block:: python
+
+        from opsdroid.skill import Skill
+        from opsdroid.matchers import match_regex
+
+        class CommandsSkill(Skill):
+            @match_event(SlashCommand, command="/testcommand")
+            async def slash_command(self, event):
+
+                cmd = event.payload["command"]
+
+                # event.payload["text"] holds the arguments from the command
+                arguments = event.payload["text"]
+
+                await message.respond(f"{cmd} {arguments}")
+    """
+
+
+class ChannelArchived(events.Event):
+    """Event for when a slack channel is archived."""
+
+
+class ChannelUnarchived(events.Event):
+    """Event for when a slack channel is unarchived."""

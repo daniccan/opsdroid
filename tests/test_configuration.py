@@ -36,10 +36,7 @@ class TestConfiguration(unittest.TestCase):
         shutil.rmtree(self._tmp_dir, onerror=del_rw)
 
     def test_schema(self):
-        skill_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "mockmodules/skills/schema_skill",
-        )
+        skill_path = "opsdroid/testing/mockmodules/skills/schema_skill"
         example_config = {
             "connectors": {"websocket": {}},
             "skills": {"test": {"path": skill_path}},
@@ -81,9 +78,12 @@ class TestConfiguration(unittest.TestCase):
         config = load_config_file(
             [os.path.abspath("tests/configs/minimal_with_envs.yaml")]
         )
-        self.assertEqual(
-            config["connectors"]["shell"]["bot-name"], os.environ["ENVVAR"]
+        assert config["connectors"]["shell"]["bot-name"] == os.environ["ENVVAR"]
+
+        config = load_config_file(
+            [os.path.abspath("tests/configs/minimal_with_envs.json")]
         )
+        assert config["connectors"]["shell"]["bot-name"] == os.environ["ENVVAR"]
 
     def test_create_default_config(self):
         test_config_path = os.path.join(

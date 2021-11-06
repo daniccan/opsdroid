@@ -8,6 +8,7 @@ import unittest.mock as mock
 from types import ModuleType
 
 import pkg_resources
+from opsdroid.core import OpsDroid
 from opsdroid.cli.start import configure_lang
 from opsdroid.configuration import load_config_file
 from opsdroid.const import ENV_VAR_REGEX
@@ -254,6 +255,16 @@ class TestLoader(unittest.TestCase):
             loaded = loader._load_modules("database", modules)
             self.assertEqual(loaded[0]["config"]["name"], "myep")
 
+    def test_import_broken_module(self):
+        skill_path = "opsdroid/testing/mockmodules/skills/broken_skill.py"
+        config = {
+            "connectors": {"websocket": {}},
+            "skills": {"test": {"path": skill_path}},
+        }
+        with OpsDroid(config=config) as opsdroid:
+            opsdroid.sync_load()
+            assert len(opsdroid.skills) == 0
+
     def test_load_config(self):
         opsdroid, loader = self.setup()
         loader._load_modules = mock.MagicMock()
@@ -276,7 +287,7 @@ class TestLoader(unittest.TestCase):
 
         loader.load_modules_from_config(config)
         self.assertEqual(len(loader._load_modules.mock_calls), 0)
-        self.assertEqual(len(opsdroid.mock_calls), 2)
+        self.assertEqual(len(opsdroid.mock_calls), 1)
 
     def test_load_minimal_config_file(self):
         opsdroid, loader = self.setup()
@@ -513,7 +524,8 @@ class TestLoader(unittest.TestCase):
             with mock.patch.object(loader, "pip_install_deps") as mockdeps:
                 os.makedirs(config["install_path"])
                 mockclone.side_effect = shutil.copy(
-                    "requirements.txt", config["install_path"]
+                    "requirements_readthedocs.txt",
+                    os.path.join(config["install_path"], "requirements.txt"),
                 )
                 loader._install_module(config)
                 self.assertLogs("_LOGGER", "debug")
@@ -571,7 +583,9 @@ class TestLoader(unittest.TestCase):
             "name": "slack",
             "type": "connector",
             "install_path": os.path.join(self._tmp_dir, "test_local_module_file"),
-            "path": os.path.abspath("tests/mockmodules/skills/test_notebook.ipynb"),
+            "path": os.path.abspath(
+                "opsdroid/testing/mockmodules/skills/test_notebook.ipynb"
+            ),
         }
         directory, _ = os.path.split(config["path"])
         os.makedirs(directory, exist_ok=True, mode=0o777)

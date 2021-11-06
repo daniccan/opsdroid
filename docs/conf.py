@@ -21,7 +21,7 @@ from recommonmark.transform import AutoStructify
 # -- Project information -----------------------------------------------------
 
 project = "opsdroid"
-copyright = "2019, opsdroid contributors"
+copyright = "2020, opsdroid contributors"
 author = "opsdroid contributors"
 
 
@@ -34,7 +34,9 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
+    "sphinx.ext.intersphinx",
     "sphinx_click.ext",
+    "sphinx_autodoc_typehints",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -45,6 +47,12 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
+# Mappings for intersphinx
+intersphinx_mapping = {"aiohttp": ("https://docs.aiohttp.org/en/stable/", None)}
+
+# The reST default role (used for this markup: `text`) to use for all
+# documents. Set to the "smart" one.
+default_role = "obj"
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -64,9 +72,11 @@ html_theme_options = {
     "code_font_family": "'Fira Code', monospace",
 }
 
+autodoc_mock_imports = ["jwt", "motor"]
+
 # -- Recommonmark ------------------------------------------------------------
 
-github_doc_root = "https://github.com/rtfd/recommonmark/tree/master/doc/"
+github_doc_root = "https://github.com/readthedocs/recommonmark/tree/master/docs"
 
 
 def setup(app):

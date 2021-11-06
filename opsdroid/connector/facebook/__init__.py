@@ -9,7 +9,6 @@ from voluptuous import Required
 from opsdroid.connector import Connector, register_event
 from opsdroid.events import Message
 
-
 _LOGGER = logging.getLogger(__name__)
 _FACEBOOK_SEND_URL = "https://graph.facebook.com/v2.6/me/messages" "?access_token={}"
 CONFIG_SCHEMA = {
@@ -40,7 +39,7 @@ class ConnectorFacebook(Connector):
         """Connector Setup."""
         super().__init__(config, opsdroid=opsdroid)
         _LOGGER.debug(_("Starting Facebook Connector."))
-        self.name = self.config.get("name", "facebook")
+        self.name = config.get("name", "facebook")
         self.bot_name = config.get("bot-name", "opsdroid")
 
     async def connect(self):
@@ -81,7 +80,10 @@ class ConnectorFacebook(Connector):
                         )
                         await self.opsdroid.parse(message)
                     except KeyError as error:
-                        _LOGGER.error(error)
+                        _LOGGER.error(
+                            "Unable to process message. Invalid payload. See the debug log for more information."
+                        )
+                        _LOGGER.debug(error)
 
         return aiohttp.web.Response(text=json.dumps("Received"), status=200)
 

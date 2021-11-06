@@ -28,12 +28,16 @@
 ## Set the location for opsdroid to install modules
 # module-path: "."
 
+## Configure the language to use
+#lang: 'en'
+
 ## Show welcome message
 welcome-message: true
 
 ## Configure the web server
 # web:
 #   host: '127.0.0.1'
+#   disable_web_index_handler_in_root: true
 #   port: 8080
 #   ssl:
 #     cert: /path/to/cert.pem
@@ -43,51 +47,49 @@ welcome-message: true
 ## Parsers
 # parsers:
 #
-#  ## Rasanlu (http://opsdroid.readthedocs.io/en/stable/matchers/rasanlu)
+#  ## Rasanlu (http://docs.opsdroid.dev/en/stable/skills/matchers/rasanlu.html)
 #  rasanlu:
 #    url: http://localhost:5000
 #    project: opsdroid
 #    token: 85769fjoso084jd
 #    min-score: 0.8
+#    train: False # Defaults to True
 #
-#  ## Dialogflow (http://opsdroid.readthedocs.io/en/stable/matchers/dialogflow)
-
+#  ## Dialogflow (http://docs.opsdroid.dev/en/stable/skills/matchers/dialogflow.html)
 #  dialogflow:
 #    project-id: <project id>
 #    min-score: 0.6
 #
-#  ## Regex (http://opsdroid.readthedocs.io/en/stable/matchers/regex)
+#  ## Regex (http://docs.opsdroid.dev/en/stable/skills/matchers/regex.html)
 #  regex:
 #    enabled: true
 #
-#  ## Parse_format (http://opsdroid.readthedocs.io/en/stable/matchers/parse_format)
+#  ## Parse_format (http://docs.opsdroid.dev/en/stable/skills/matchers/parse_format.html)
 #  parse_format:
 #    enabled: true
 #
-#  ## Wit.ai (http://opsdroid.readthedocs.io/en/stable/matchers/wit.ai)
-
+#  ## Wit.ai (http://docs.opsdroid.dev/en/stable/skills/matchers/wit.ai.html)
 #  witai:
 #    token: XJF475SKGITJ98KHFO
 #    min-score: 0.6
 #
-#  ## Luis.ai (http://opsdroid.readthedocs.io/en/stable/matchers/luis.ai)
+#  ## Luis.ai (http://docs.opsdroid.dev/en/stable/skills/matchers/luis.ai.html)
 #   luisai:
 #     appid: "<application-id>"
 #     appkey: "<subscription-key>"
 #     verbose: True
 #     min-score: 0.6
 #
-#  ## Crontab (http://opsdroid.readthedocs.io/en/stable/matchers/crontab)
+#  ## Crontab (http://docs.opsdroid.dev/en/stable/skills/matchers/crontab.html)
 #  crontab:
 #    enabled: true
 #
-#  ## Sapcai (http://opsdroid.readthedocs.io/en/stable/matchers/sapcai)
+#  ## Sapcai (http://docs.opsdroid.dev/en/stable/skills/matchers/sapcai.html)
 #  sapcai:
 #    token: 85769fjoso084jd
 #    min-score: 0.8
 #
-#  ## Watson (http://opsdroid.readthedocs.io/en/stable/matchers/watson)
-#
+#  ## Watson (http://docs.opsdroid.dev/en/stable/skills/matchers/watson.html)
 #  watson:
 #    gateway: gateway-fra # Required
 #    assistant-id: '74yhfhis9-kfirj1e-jfir34-kfdir345' # Required
@@ -117,6 +119,19 @@ connectors:
 #    enable_dms: true  # Should the bot respond to Direct Messages
 #    enable_tweets: true  # Should the bot respond to tweets
 #
+# ## Twitch (core)
+#  twitch:
+#   # required
+#   code: "hfu923hfks02nd2821jfislf" # Code obtained from the first OAuth step
+#   client-id: "e0asdj48jfkspod0284"
+#   client-secret: "kdksd0458j93847j"
+#   channel: theflyingdev # Broadcaster channel
+#   redirect: http://localhost # Url to be passed to get oath token - defaults to localhost
+#   forward-url: 'http://94jfsd9ff.ngrok.io' # Either an URL provided by a forwarding service or an exposed ip address
+#   # optional
+#   webhook-lease-seconds: 86400 # how long for webhooks to expire
+#   always-listening: false # Turn on to connect to the chat server even if stream is offline.
+#
 #  ## Webexteams (core)
 #  webexteams:
 #    # required
@@ -136,22 +151,23 @@ connectors:
 #    # Required
 #    mxid: "@username:matrix.org"
 #    password: "mypassword"
-#    # Name of a single room to connect to
-#    room: "#matrix:matrix.org"
-#    # Alternatively, a dictionary of multiple rooms
+#    # A dictionary of multiple rooms
 #    # One of these should be named 'main'
 #    rooms:
 #      'main': '#matrix:matrix.org'
-#      'other': '#riot:matrix.org'
+#      'other': '#element-web:matrix.org'
 #    # Optional
 #    homeserver: "https://matrix.org"
 #    nick: "Botty McBotface"  # The nick will be set on startup
 #    room_specific_nicks: False  # Look up room specific nicknames of senders (expensive in large rooms)
+#    device_name: "opsdroid"
+#    device_id: "opsdroid" # A unique string to use as an ID for a persistent opsdroid device
+#    store_path: "path/to/store/" # Path to the directory where the matrix store will be saved
 #
 #  ## Mattermost (core)
 #  mattermost:
 #    # Required
-#    api-token: "zyxw-abdcefghi-12345"
+#    token: "zyxw-abdcefghi-12345"
 #    url: "mattermost.server.com"
 #    team-name: "myteam"
 #    # Optional
@@ -164,6 +180,7 @@ connectors:
 #  github:
 #    # required
 #    token: aaabbbcccdddeee111222333444
+#    secret: <your secret>
 #
 #  ## Gitter (core)
 #  gitter:
@@ -178,22 +195,30 @@ connectors:
 #    # required
 #    token: "123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ-ZYXWVUT"  # Telegram bot token
 #    # optional
-#    update-interval: 0.5  # Interval between checking for messages
-#    default-user: user1  # Default user to send messages to (overrides default room in connector)
+#    bot-name: opsdroid  # Name to be used by the bot in some replies, defaults to opsdroid
+#    reply-unauthorized: True # Should the bot reply to unauthorized users?
 #    whitelisted-users:  # List of users who can speak to the bot, if not set anyone can speak
 #      - user1
 #      - user2
 #
+#  ## Teams (core)
+#  teams:
+#    # Required
+#    app-id: "yourappid"
+#    password: "yourpassword"
+#    # Optional
+#    bot-name: "mybot" # default "opsdroid"
 #  ## Slack (core)
 #  slack:
 #    # required
-#    token: "zyxw-abdcefghi-12345"
+#    bot-token: "zyxw-abdcefghi-12345"
 #    # optional
+#    socket-mode: false # default true
+#    app-token: "xapp-abdcfkje-12345" # socket-mode needs to be true
+#    start-thread: true # default false, if true opsdroid will reply in a thread
 #    bot-name: "mybot" # default "opsdroid"
 #    default-room: "#random" # default "#general"
 #    icon-emoji: ":smile:" # default ":robot_face:"
-#    connect-timeout: 10 # default 10 seconds
-#    chat-as-user: true # default false
 #
 #  ## Rocketchat (core)
 #  rocketchat:
@@ -236,6 +261,10 @@ connectors:
 #    port:       "12345"       # (optional) default "27017"
 #    database:   "mydatabase"  # (optional) default "opsdroid"
 #
+#  matrix:
+#    default_room: "main"
+#    single_state_key: "dev.opsdroid.database"
+#    should_encrypt: True
 
 
 ## Skill modules

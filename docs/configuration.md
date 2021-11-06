@@ -70,7 +70,7 @@ Configuration options such as the `token` in the slack connector or the `host`, 
 
 ### Connector Modules
 
-Opsdroid comes with some built-in connectors out of the box. A connector is a module which is either installed as a plugin or built-in that connect opsdroid to a specific chat service.
+Opsdroid comes with some built-in connectors out of the box. A connector is a module which is either installed as a plugin or built-in that connects opsdroid to a specific chat service.
 
 The built-in connectors are:
 
@@ -189,6 +189,22 @@ skills:
 #### Optional logging arguments
 
 You can pass optional arguments to the logging configuration to extend the opsdroid logging.
+
+##### Logs timestamp
+Sometimes it is useful to have the timestamp when logs happen. You can enable them with the `timestamp` boolean. Defaults to false
+
+```yaml
+logging:
+  level: info
+  timestamp: true
+```
+
+*example:*
+```shell
+2020-12-02 10:39:51,255 INFO opsdroid.logging: ========================================                                 
+2020-12-02 10:39:51,255 INFO opsdroid.logging: Started opsdroid v0.19.0+66.g8b839bc.dirty.                             
+2020-12-02 10:39:51,255 INFO opsdroid: ========================================
+```
 
 ##### Logs rotation
 To keep the logs under control the file will grow to 50MB before being rotated back. You can change the default value by passing the `file-size` argument.
@@ -350,6 +366,7 @@ parsers:
     project: opsdroid
     token: 85769fjoso084jd
     min-score: 0.8
+    train: True
 ```
 
 Some parsers will allow you to specify a min-score to tell opsdroid to ignore any matches which score less than a given number between 0 and 1. You just need to add the required min-score under a parser in the configuration.yaml file.
@@ -550,6 +567,9 @@ CONFIG_SCHEMA = {
     "homeserver": str,
     "nick": str,
     "room_specific_nicks": bool,
+    "device_name": str,
+    "device_id": str,
+    "store_path": str,
 }
 ```
 
@@ -597,4 +617,4 @@ Which would be represented in a dictionary format like this:
 
 You can have a look at the [example configuration file](https://github.com/opsdroid/opsdroid/blob/master/opsdroid/configuration/example_configuration.yaml) for a better grasp of the new layout.
 
-If you need help migrating your configuration to the new layout please get in touch with us on the [official matrix channel](https://riot.im/app/#/room/#opsdroid-general:matrix.org).
+If you need help migrating your configuration to the new layout please get in touch with us on the [official matrix channel](https://app.element.io/#/room/#opsdroid-general:matrix.org).
